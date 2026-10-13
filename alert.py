@@ -1,15 +1,26 @@
 from datetime import datetime
-from utils import normalize
+from typing import Dict, Optional
 
-class Alert:
-    def __init__(self, id_:str, source:str, received_at:str, account:str, direction:str, amount:str, merchant:str, ref: str):
-        self.id = id_
-        self.source = source
-        self.received_at = datetime.strptime(received_at, '%Y-%m-%d %H:%M')
-        self.account = account
-        self.direction = direction
-        self.amount = float(amount)
-        self.merchant = merchant
-        self.ref = ref if ref else None
+from notice import Notice
 
-        self.merchant_key = normalize(merchant)
+
+class Alert(Notice):
+    """An SMS or email alert, built from one row of alerts.csv."""
+
+    def __init__(self, ref: Optional[str], **notice_fields):
+        super().__init__(**notice_fields)
+        self._ref = ref
+
+    @classmethod
+    def from_row(cls, row: Dict[str, str]) -> "Alert":
+        return cls(
+            id=row["id"],
+            source=row["source"],
+            account=row["account"],
+            direction=row["direction"],
+            amount=float(row["amount"]),
+            merchant=row["merchant"],
+            occurred_at=datetime.strptime(row["received_at"], "%Y-%m-%d %H:%M"),
+            raw=tuple(row.items()),
+            ref=row["ref"] or None,
+        )

@@ -1,15 +1,32 @@
 from datetime import datetime
-from utils import normalize
+from typing import Dict
 
-class Statement:
-    def __init__(self, id_:str, date:str, description: str, debit: str, credit: str, balance: str):
-        self.id = id_
-        self.date = datetime.strptime(date, '%Y-%m-%d').date()
-        self.description = description
-        self.debit = float(debit) if debit else None
-        self.credit = float(credit) if credit else None
-        self.balance = float(balance)
+from notice import Notice
 
-        self.amount = self.debit if self.debit is not None else self.credit
-        self.direction = 'out' if self.debit is not None else 'in'
-        self.merchant_key = normalize(description)
+
+class Statement(Notice):
+    """One line of the bank statement, built from one row of statements.csv."""
+
+    def __init__(self, balance: float, **notice_fields):
+        super().__init__(**notice_fields)
+        self._balance = balance
+
+    @classmethod
+    def from_row(cls, row: Dict[str, str], account: str) -> "Statement":
+        # statements.csv has no account column, so the caller passes it in.
+        debit, credit = row["debit"], row["credit"]
+        if bool(debit) == bool(credit):
+            raise ValueError(f"{row['id']}: exactly one of debit/credit must be filled")
+
+        return cls(
+            id=row["id"],
+            source="statement",
+            account=account,
+            direction="out" if debit else "in",
+            amount=float(debit or credit),
+            merchant=row["description"],
+            # The statement only gives a date, so the time is midnight.
+            occurred_at=datetime.strptime(row["date"], "%Y-%m-%d"),
+            raw=tuple(row.items()),
+            balance=float(row["balance"]),
+        )

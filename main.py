@@ -1,16 +1,25 @@
-# This is a sample Python script.
+import csv
+from typing import List
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+from alert import Alert
+from payment_recoinciler import Reconciler
+from statement import Statement
+
+ACCOUNT = "4521"  # statements.csv has no account column
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+def load_alerts(path: str) -> List[Alert]:
+    with open(path, newline="") as f:
+        return [Alert.from_row(row) for row in csv.DictReader(f)]
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def load_statements(path: str, account: str) -> List[Statement]:
+    with open(path, newline="") as f:
+        return [Statement.from_row(row, account) for row in csv.DictReader(f)]
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+if __name__ == "__main__":
+    alerts = load_alerts("alerts.csv")
+    statements = load_statements("statements.csv", ACCOUNT)
+
+    print(Reconciler(alerts, statements).summary())
